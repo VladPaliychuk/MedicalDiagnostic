@@ -8,7 +8,9 @@
         private double[] target;
         private double[,] targetMatrix;
         private Neuron[] hiddentNeurons;
+        private HNeuron[] hNeurons;
         private Neuron outputNeuron;
+        private Neuron[] outputNeurons;
         public Diagnostic(int epochs, double[,] trainingData, double[] target)
         {
             this.epochs = epochs;
@@ -25,9 +27,9 @@
             this.trainingData = trainingData;
             this.targetMatrix = targetMatrix;
 
-            Train();
+            Train2();
             Consultation();
-            Diagnosis();
+            Diagnosis2();
         }
         public void Consultation()
         {
@@ -62,12 +64,28 @@
                 Console.WriteLine("Ви не хворієте грипом.");
             }
         }
+        public void Diagnosis2()
+        {
+            double[] hiddenOutput = new double[hNeurons.Length];
+            double[] output = new double[outputNeurons.Length];
+
+            for (int n = 0; n < hNeurons.Length; n++)
+            {
+                hiddenOutput[n] = hNeurons[n].CalculateOutput(input);
+            }
+            for (int n = 0; n < outputNeurons.Length; n++)
+            {
+                output[n] = outputNeurons[n].CalculateOutput(hiddenOutput);
+            }
+            Console.WriteLine($"Ви хворєте простудою на {output[0]}%");
+            Console.WriteLine($"Ви хворєте грипом на {output[1]}%");
+            Console.WriteLine($"Ви здорові на {output[2]}%");
+        }
         public void Train()
         {
             Initialize();
             for(int i = 0; i < epochs; i++)
             {
-                Console.WriteLine("1");
                 double[] outputs = new double[trainingData.GetLength(0)];
                 for (int j = 0; j < trainingData.GetLength(0); j++)
                 {
@@ -114,9 +132,43 @@
                 Console.WriteLine($"{output}");
             }
         }
-        public void TrainSecond()
+        public void Train2()
         {
+            Initialize2();
+            for (int i = 0; i < epochs; i++)
+            {
+                for (int j = 0; j < trainingData.GetLength(0); j++)
+                {
+                    //Info();
+                    double[] row = GetRow(trainingData, j);
 
+                    double[] hiddenOutput = new double[hNeurons.Length];
+                    double[] output = new double[outputNeurons.Length];
+                    for (int n = 0; n < hNeurons.Length; n++)
+                    {
+                        hiddenOutput[n] = hNeurons[n].CalculateOutput(row);
+                    }
+
+                    double[] outputRow = GetRow(targetMatrix, j);
+                    double[] outputErrors = new double[outputRow.Length];
+                    for (int n = 0; n < outputNeurons.Length; n++)
+                    {
+                        output[n] = outputNeurons[n].CalculateOutput(hiddenOutput);
+                        outputNeurons[n].CalculateError(outputRow[n], output[n]);
+                        outputErrors[n] = outputNeurons[n].Error;
+                        outputNeurons[n].UpdateWeights(row);
+                        outputNeurons[n].UpdateBiases();
+                    }
+                    
+
+                    for (int n = 0; n < hNeurons.Length; n++)
+                    {
+                        hNeurons[n].BackpropagateError(hiddenOutput[n], outputErrors);
+                        hNeurons[n].UpdateWeights(row);
+                        hNeurons[n].UpdateBiases();
+                    }
+                }
+            }
         }
         public bool Check(double[] outputs)
         {
@@ -180,6 +232,20 @@
             }
 
             return row;
+        }
+
+        public void Initialize2()
+        {
+            hNeurons = new HNeuron[3];
+            outputNeurons = new Neuron[3];
+            for (int n = 0; n < hNeurons.Length; n++)
+            {
+                hNeurons[n] = new HNeuron(trainingData.GetLength(1));
+            }
+            for (int n = 0; n < outputNeurons.Length; n++)
+            {
+                outputNeurons[n] = new Neuron(hNeurons.Length);
+            }
         }
     }
 }
